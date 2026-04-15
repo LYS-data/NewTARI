@@ -1,35 +1,17 @@
-virny==0.6.0
-pytorch-tabular~=1.1.0
-tensorflow~=2.8.0
-tensorflow-probability==0.16.0
-autokeras==1.0.20
-dependency_injector==4.34.2
-gitpython==3.1.11
-kmodes==0.12.2
-numpy==1.23.5
-lightgbm==4.3.0
-POT~=0.9.5
-FrEIA~=0.2
-hnswlib~=0.8.0
-optuna~=4.0.0
-neural-tangents~=0.6.5
-matplotlib~=3.6.2
-pandas~=1.5.2
-altair~=4.2.0
-scikit-learn~=1.3.0
-tqdm~=4.64.1
-sklearn-utils
-seaborn~=0.12.1
-folktables~=0.0.11
-python-dotenv~=1.0.0
-pytest~=7.2.2
-pymongo~=4.3.3
-fairlearn~=0.9.0
-aif360>=0.5.0
-fancyimpute~=0.7.0
-missingpy~=0.2.0
-impyute~=0.0.8
-autoimpute~=0.14.1
-certifi~=2024.2.2
-progress-bar==8
-typing-extensions~=4.8.0
+﻿# Recommended Python version for this project: 3.12.4
+# Conda example:
+#   conda create -n imputation-reco python=3.12.4 -y
+#   conda activate imputation-reco
+#   pip install -r requirements.txt
+#
+# Optional dependencies for extra imputers:
+#   pip install torch
+#   pip install fancyimpute>=0.7.0
+#   pip install xgboost>=2.0
+#   pip install hnswlib neural-tangents
+
+numpy>=1.24,<3.0
+pandas>=2.0,<3.0
+scikit-learn>=1.3,<2.0
+scipy>=1.10,<2.0
+pytest>=7.4,<9.0

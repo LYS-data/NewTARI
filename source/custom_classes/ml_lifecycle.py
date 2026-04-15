@@ -47,6 +47,7 @@ class MLLifecycle:
 
         self._logger = get_logger()
         self._db = DatabaseClient(secrets_path=get_secrets_path('secrets.env'))
+        #self._db = None
         # Create a unique uuid per session to manipulate in the database
         # by all experimental results generated in this session
         self._session_uuid = str(uuid.uuid1())

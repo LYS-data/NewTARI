@@ -12,6 +12,32 @@ tf.disable_v2_behavior()
 import external_dependencies.HIVAE.loglik_models_missing_normalize as loglik_models_missing_normalize
 import numpy as np
 
+
+def dense_compat(inputs, units, activation=None, kernel_initializer=None, name=None, reuse=None, trainable=True, use_bias=True):
+    """Keras-3-safe replacement for deprecated dense_compat."""
+    input_dim = inputs.get_shape().as_list()[-1]
+    if input_dim is None:
+        raise ValueError("dense_compat requires a statically known last dimension.")
+    with tf.variable_scope(name or "dense", reuse=reuse):
+        kernel = tf.get_variable(
+            "kernel",
+            shape=[input_dim, units],
+            initializer=kernel_initializer or tf.glorot_uniform_initializer(),
+            trainable=trainable,
+        )
+        output = tf.matmul(inputs, kernel)
+        if use_bias:
+            bias = tf.get_variable(
+                "bias",
+                shape=[units],
+                initializer=tf.zeros_initializer(),
+                trainable=trainable,
+            )
+            output = output + bias
+    if activation is not None:
+        output = activation(output)
+    return output
+
 def place_holder_types(types_file, batch_size):
     
     #Read the types of the data from the files
@@ -93,7 +119,7 @@ def batch_normalization(batch_data_list, types_list, miss_list):
 def s_proposal_multinomial(X, batch_size, s_dim, tau, reuse):
     
     #We propose a categorical distribution to create a GMM for the latent space z
-    log_pi = tf.layers.dense(inputs=X, units=s_dim, activation=None,
+    log_pi = dense_compat(inputs=X, units=s_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'enc_s', reuse=reuse)
     
     
@@ -107,13 +133,13 @@ def s_proposal_multinomial(X, batch_size, s_dim, tau, reuse):
 
 def z_proposal_GMM(X, samples_s, batch_size, z_dim, reuse):
     
-#    X_in = tf.layers.dense(inputs=X, units=100, activation=tf.nn.tanh,
+#    X_in = dense_compat(inputs=X, units=100, activation=tf.nn.tanh,
 #                         kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_0_' + 'mean_enc_z', reuse=reuse)
     
     #We propose a GMM for z
-    mean_qz = tf.layers.dense(inputs=tf.concat([X,samples_s],1), units=z_dim, activation=None,
+    mean_qz = dense_compat(inputs=tf.concat([X,samples_s],1), units=z_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'mean_enc_z', reuse=reuse)
-    log_var_qz = tf.layers.dense(inputs=tf.concat([X,samples_s],1), units=z_dim, activation=None,
+    log_var_qz = dense_compat(inputs=tf.concat([X,samples_s],1), units=z_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'logvar_enc_z', reuse=reuse)
     
     # Avoid numerical problems
@@ -128,9 +154,9 @@ def z_proposal_GMM(X, samples_s, batch_size, z_dim, reuse):
 def z_proposal_Normal(X, batch_size, z_dim, reuse):
     
     #We propose a GMM for z
-    mean_qz = tf.layers.dense(inputs=X, units=z_dim, activation=None,
+    mean_qz = dense_compat(inputs=X, units=z_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'mean_enc_z', reuse=reuse)
-    log_var_qz = tf.layers.dense(inputs=X, units=z_dim, activation=None,
+    log_var_qz = dense_compat(inputs=X, units=z_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'logvar_enc_z', reuse=reuse)
     
     # Avoid numerical problems
@@ -158,13 +184,13 @@ def z_proposal_GMM_factorized(X, samples_s, miss_list, batch_size, z_dim, reuse)
         nObs = tf.shape(observed_data)[0]
         
         #Mean layer
-        aux_m = tf.layers.dense(inputs=tf.concat([observed_data,observed_s],1), units=z_dim, activation=None,
+        aux_m = dense_compat(inputs=tf.concat([observed_data,observed_s],1), units=z_dim, activation=None,
                              kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'mean_enc_z'+str(i), reuse=reuse)
         #Reconstruct means with zeros (so they don't affect the mean_joint)
         aux_mean_qz = tf.dynamic_stitch(condition_indices, [tf.zeros([batch_size-nObs,z_dim],dtype=tf.float32),aux_m])
 
         #Logvar layers
-        aux_lv = tf.layers.dense(inputs=tf.concat([observed_data,observed_s],1), units=z_dim, activation=None,
+        aux_lv = dense_compat(inputs=tf.concat([observed_data,observed_s],1), units=z_dim, activation=None,
                              kernel_initializer=tf.random_normal_initializer(stddev=0.05), name='layer_1_' + 'logvar_enc_z'+str(i), reuse=reuse)
         #Set a high value to make the variance in the missing cases negligible
         aux_log_var_qz = tf.dynamic_stitch(condition_indices, [tf.fill([batch_size-nObs,z_dim],15.0),aux_lv])
@@ -191,7 +217,7 @@ def z_proposal_GMM_factorized(X, samples_s, miss_list, batch_size, z_dim, reuse)
 def z_distribution_GMM(samples_s, z_dim, reuse):
     
     #We propose a GMM for z
-    mean_pz = tf.layers.dense(inputs=samples_s, units=z_dim, activation=None,
+    mean_pz = dense_compat(inputs=samples_s, units=z_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name= 'layer_1_' + 'mean_dec_z', reuse=reuse)
     log_var_pz = tf.zeros([tf.shape(samples_s)[0],z_dim])
     
@@ -426,9 +452,9 @@ def theta_ordinal_s(observed_y, missing_y, observed_s, missing_s, condition_indi
 def observed_data_layer(observed_data, missing_data, condition_indices, output_dim, name, reuse, bias):
     
     #Train a layer with the observed data and reuse it for the missing data
-    obs_output = tf.layers.dense(inputs=observed_data, units=output_dim, activation=None,
+    obs_output = dense_compat(inputs=observed_data, units=output_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05),name=name,reuse=reuse,trainable=True,use_bias=bias)
-    miss_output = tf.layers.dense(inputs=missing_data, units=output_dim, activation=None,
+    miss_output = dense_compat(inputs=missing_data, units=output_dim, activation=None,
                      kernel_initializer=tf.random_normal_initializer(stddev=0.05),name=name,reuse=True,trainable=False,use_bias=bias)
     #Join back the data
     output = tf.dynamic_stitch(condition_indices, [miss_output,obs_output])

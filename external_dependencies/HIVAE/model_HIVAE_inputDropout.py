@@ -38,7 +38,7 @@ def decoder(batch_data_list, miss_list, types_list, samples, q_params, normaliza
     p_params['z'] = VAE_functions.z_distribution_GMM(samples['s'], z_dim, reuse=None)
     
     #Create deterministic layer y
-    samples['y'] = tf.layers.dense(inputs=samples['z'], units=y_dim, activation=None,
+    samples['y'] = VAE_functions.dense_compat(inputs=samples['z'], units=y_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name= 'layer_h1_', reuse=None)
     
     grouped_samples_y = VAE_functions.y_partition(samples['y'], types_list, y_dim_partition)
@@ -88,7 +88,7 @@ def samples_generator(batch_data_list, X_list, miss_list, types_list, batch_size
     samples_test['z'] = params[0]
     
     #Create deterministic layer y
-    samples_test['y'] = tf.layers.dense(inputs=samples_test['z'], units=y_dim, activation=None,
+    samples_test['y'] = VAE_functions.dense_compat(inputs=samples_test['z'], units=y_dim, activation=None,
                          kernel_initializer=tf.random_normal_initializer(stddev=0.05), name= 'layer_h1_', reuse=True)
     
     grouped_samples_y = VAE_functions.y_partition(samples_test['y'], types_list, y_dim_partition)
